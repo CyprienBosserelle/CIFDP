@@ -1,0 +1,53 @@
+#!/bin/bash
+#############################################
+
+
+year=$1
+sttime=$2
+nstep=$3
+
+filein=(Stat_Dir.dat Stat_Hs.dat Stat_Te.dat)
+nvarf=(1 1 1)
+fileout=(Dir.nc Hs.nc Te.nc)
+xvar=(dir Hs Te )
+yvar=(dir Hs Te )
+
+for ((i=0; i<1; i++))
+do
+
+cp Swan2nc.exe ./${year[$i]}/
+cp Swan2nc_master.dat ./${year[$i]}/
+cd ${year[$i]}
+for ((m=0; m<3; m++))
+do
+
+sed s/INFILE/${filein[$m]}/ Swan2nc_master.dat >tmp1.tmp
+sed s/NVAR/${nvarf[$m]}/ tmp1.tmp >tmp2.tmp
+sed s/STARTTIME/${sttime[$i]}/ tmp2.tmp >tmp3.tmp
+sed s/OUTFILE/${fileout[$m]}/ tmp3.tmp >tmp4.tmp
+sed s/NSTEP/${nstep[$i]}/ tmp4.tmp >tmp4b.tmp
+sed s/VARX/${xvar[$m]}/ tmp4b.tmp >tmp5.tmp
+sed s/VARY/${yvar[$m]}/ tmp5.tmp>Swan2nc.dat
+
+rm *.tmp
+
+./Swan2nc.exe
+
+rm ${filein[$m]}
+done
+cd ..
+######################
+#sed s/WINDTIMEST/${ywst}/ Samoa_Master.swn >swn1.tmp
+#sed s/WINDTIMEND/${ywnd}/ swn1.tmp >swn2.tmp
+#sed s/WINDFILE/${ywfile}/ swn2.tmp >swn3.tmp
+#sed s/MODTIMEST/${ymst}/ swn3.tmp >swn4.tmp
+#sed s/MODTIMENT/${ymmd}/ swn4.tmp >swn5.tmp
+#sed s/OUTFOLDER/${year}/ swn5.tmp >swn6.tmp
+#sed s/MODTIMEND/${ymnd}/ swn6.tmp >$swnfile
+
+#rm *.tmp
+
+#swanrun.bat $swn
+
+
+done
