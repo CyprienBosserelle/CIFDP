@@ -1,0 +1,10 @@
+#Header
+INFILE	input_file
+NVAR	numvariab
+176.73,-19.33	xo,yo_Bottom_left_corner_coordinates
+0.003,0.003	dx,dy_Spacing
+714,534	nx,ny_size
+STARTTIME,0.0417,NSTEP	to,dt,nt_Time_vector
+OUTFILE	output_name
+VARX Variable_name
+VARY Variable_name
