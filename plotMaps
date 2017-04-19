@@ -123,6 +123,8 @@ do
 
 lftp sftp://wacop:J3fG5hxU1@52.63.144.203 -e "cd public_html/Forecast; put ${outpng}; bye"
 #mv -f ${outpng} /cygdrive/c/Users/cyprienb/Dropbox/Public/${outpng}
+#mv -f ${outpng} /cygdrive/c/Users/cyprienb/OneDrive\ -\ SPC/Forecast/${outpng}
+
 #| xyz2grd -Gout-${ttt}.nc
 #176.73+(NR-(step-1)*ny*nx)*0.003,-19.33000+(NR-1)*0.003,$1
 done

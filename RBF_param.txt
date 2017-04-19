@@ -1,14 +1,11 @@
 #Header
 gamma = 0.2672;
 centersfile = test_MDA_300.dat;
-RBFcoefffile = RBFcoeff.txt
+RBFcoefffile = RBFcoeff-MB-Shore-zsmean.txt;
 inputfile = Forecast-Centers_MB_Shore.txt;
 trainingfile = MauiBay_Shore_MDA_zs.txt;
 isdir=2;
 trainRBF = 0;
-
 saveRBFcoeffs = 0;
-
 interpRBF = 1;
-
-outputfile = MauiBay-WL.txt;
+outputfile = MauiBay-WLmean.txt;
