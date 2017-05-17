@@ -3,6 +3,7 @@
 #################################################
 ######## First download the data and make timeseries
 
+# Set up variables that will decide which file is the latest forecast
 filedate=`date -d"4 hours ago" -u +"%Y%m%d"`
 Hcycle=`date -d"4 hours ago" -u +"%H"`
 
@@ -17,11 +18,12 @@ forecasttime=`echo "$forecastdate ${Tcycle}:00:00 UTC"`
 
 touch South_1.txt
 
+# location of boundaries
 LONS=(176.5 177.0 177.5 178.0 178.5 179.0 176.5 176.5 176.5 176.5 176.5 179.0 179.0 179.0 179.0 179.0)
 LATS=(-19.5 -19.5 -19.5 -19.5 -19.5 -19.5 -19.5 -19.0 -18.5 -18.0 -17.5 -19.5 -19.0 -18.5 -18.0 -17.5)
 NAMES=(South_1 South_2 South_3 South_4 South_5 South_6 West_1 West_2 West_3 West_4 West_5 East_1 East_2 East_3 East_4 East_5)
 
-#
+#For Each forecast step
 for i in $(seq 0 3 180)
 do
 
@@ -29,10 +31,18 @@ do
 	tt=`printf "%2.2i" $i`
 	ttt=`printf "%3.3i" $i`
 
+	#Region to download
+	leftlonreg=176.5
+	rightlonreg=179.0
+	toplatreg=-17.5
+	botlatreg=-19.5
+
+
+	#Download the Gloabl wind forecast for the region of interest from the High resolution gfs
 
 
 	#var=`echo "http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_hd.pl?file=gfs.t"${Tcycle}"z.mastergrb2f"${ttt}"&lev_10_m_above_ground=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=176.5&rightlon=179&toplat=-17.5&bottomlat=-19.5&dir=%2Fgfs."${filedate}${Tcycle}"%2Fmaster"`
-	var=`echo "http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?file=gfs.t"${Tcycle}"z.pgrb2.0p25.f"${ttt}"&lev_10_m_above_ground=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=176.5&rightlon=179.0&toplat=-17.5&bottomlat=-19.5&dir=%2Fgfs."${filedate}${Tcycle}""`
+	var=`echo "http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?file=gfs.t"${Tcycle}"z.pgrb2.0p25.f"${ttt}"&lev_10_m_above_ground=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=${leftlonreg}&rightlon=${rightlonreg}&toplat=${toplatreg}&bottomlat=${botlatreg}&dir=%2Fgfs."${filedate}${Tcycle}""`
 	#echo $var
 	curl $var -o Wind_tmp.grb2
 	wgrib2 Wind_tmp.grb2 -netcdf Wind_tmp.nc
@@ -46,15 +56,16 @@ do
 	fi
 
 
-
-	var=`echo "http://nomads.ncep.noaa.gov/cgi-bin/filter_wave_multi.pl?file=multi_1.glo_30mext.t"${Tcycle}"z.f"${ttt}".grib2&var_DIRPW=on&var_PERPW=on&var_HTSGW=on&var_SWELL=on&var_SWPER=on&var_SWDIR=on&var_WVDIR=on&var_WVPER=on&var_WVHGT=on&subregion=&leftlon=176.5&rightlon=179&toplat=-17.5&bottomlat=-19.5&dir=%2Fmulti_1."${filedate}`
+	#Download the NOAA ww3 multi grid forecast for reion of interest
+	var=`echo "http://nomads.ncep.noaa.gov/cgi-bin/filter_wave_multi.pl?file=multi_1.glo_30mext.t"${Tcycle}"z.f"${ttt}".grib2&var_DIRPW=on&var_PERPW=on&var_HTSGW=on&var_SWELL=on&var_SWPER=on&var_SWDIR=on&var_WVDIR=on&var_WVPER=on&var_WVHGT=on&subregion=&leftlon=${leftlonreg}&rightlon=${rightlonreg}&toplat=${toplatreg}&bottomlat=${botlatreg}&dir=%2Fmulti_1."${filedate}`
 
 
 
 	#echo $var
 	curl $var -o tmp.grib2
+	#Convert the file into netcdf
 	wgrib2 tmp.grib2 -netcdf tmp.nc
-
+	#Extract and separate the wave parameters in temporary TxT files
 	grd2xyz tmp.nc?SWELL_1insequence[0] >Hswell1tmp.txt
 	grd2xyz tmp.nc?SWDIR_1insequence[0] >Dswell1tmp.txt
 	grd2xyz tmp.nc?SWPER_1insequence[0] >Tswell1tmp.txt
@@ -68,11 +79,12 @@ do
 	grd2xyz tmp.nc?WVPER_surface[0] >Twindtmp.txt
 
 
-
+	#For each boundary points and each wave component create the input file for JONSWAP.txt and create a JONSWAP Spectrum
 	for n in $(seq 1 1 16)
 	do
 
 	indx=`echo "$n-1" |bc`
+	#create jonswap spectrum for Primary swell
 	#touch jonswap.dat
 	awk -v lon=${LONS[$indx]} -v lat=${LATS[$indx]} '{if($1>(lon-0.001) && $1<(lon+0.001) && ($2<lat+0.0001) && ($2>lat-0.001)){printf("JONSWAP_OPERATIONAL_FILE\nSouth_1_sw1.txt\toutputfile\n%f\tHs\n",$3)}}' Hswell1tmp.txt> jonswap.dat
 	awk -v lon=${LONS[$indx]} -v lat=${LATS[$indx]} '{if($1>(lon-0.001) && $1<(lon+0.001) && ($2<lat+0.0001) && ($2>lat-0.001)){printf("%f\tTp\n",$3)}}' Tswell1tmp.txt>> jonswap.dat
@@ -86,6 +98,8 @@ do
 
 	xyz2grd South_1_sw1.txt -R0.04/0.315/0/359 -I0.0025/1.0 -GSwell1.nc
 
+
+	#create jonswap spectrum for Secondary swell
 	#touch jonswap.dat
 	awk -v lon=${LONS[$indx]} -v lat=${LATS[$indx]} '{if($1>(lon-0.001) && $1<(lon+0.001) && ($2<lat+0.0001) && ($2>lat-0.001)){printf("JONSWAP_OPERATIONAL_FILE\nSouth_1_sw2.txt\toutputfile\n%f\tHs\n",$3)}}' Hswell2tmp.txt> jonswap.dat
 	awk -v lon=${LONS[$indx]} -v lat=${LATS[$indx]} '{if($1>(lon-0.001) && $1<(lon+0.001) && ($2<lat+0.0001) && ($2>lat-0.001)){printf("%f\tTp\n",$3)}}' Tswell2tmp.txt>> jonswap.dat
@@ -99,7 +113,7 @@ do
 
 	xyz2grd South_1_sw2.txt -R0.04/0.315/0/359 -I0.0025/1.0 -GSwell2.nc
 
-
+	#create jonswap spectrum for Wind waves
 	#touch jonswap.dat
 	awk -v lon=${LONS[$indx]} -v lat=${LATS[$indx]} '{if($1>(lon-0.001) && $1<(lon+0.001) && ($2<lat+0.0001) && ($2>lat-0.001)){printf("JONSWAP_OPERATIONAL_FILE\nSouth_1_ww.txt\toutputfile\n%f\tHs\n",$3)}}' Hwindtmp.txt> jonswap.dat
 	awk -v lon=${LONS[$indx]} -v lat=${LATS[$indx]} '{if($1>(lon-0.001) && $1<(lon+0.001) && ($2<lat+0.0001) && ($2>lat-0.001)){printf("%f\tTp\n",$3)}}' Twindtmp.txt>> jonswap.dat
@@ -113,16 +127,18 @@ do
 
 	xyz2grd South_1_ww.txt -R0.04/0.315/0/359 -I0.0025/1.0 -GWindWave.nc
 
+	#Conbine all 3 spectra
 	grdmath Swell1.nc 0 AND = Swell1_N.nc
 	grdmath Swell2.nc 0 AND = Swell2_n.nc
 	grdmath WindWave.nc 0 AND = WindWave_N.nc
 	grdmath Swell1_N.nc Swell2_n.nc ADD WindWave_N.nc ADD = total_spec.nc
 
 	grd2xyz total_spec.nc -ZBLa > total_spec.txt
+	#WARNING Total swell should be scaled to the significant wave height ?? CB 17/05/17
 
 
 
-
+	#Convert combined spectra into a SWAN spec file
 	datecalstr=`echo "$forecasttime +$i hours"`
 	dateforecaststr=`date -u --date="$datecalstr" +"%Y%m%d.%H%M%S"`
 
@@ -142,7 +158,7 @@ do
 	sleep 1
 done
 
-
+# Prepare the SWAN operational file by modifying the Master operational file
 datecalstr=`echo "$forecasttime + 180 hours"`
 datecalplus=`echo "$forecasttime + 1 hours"`
 dateforecaststarts=`date -u --date="$forecasttime" +"%Y%m%d.%H%M%S"`
@@ -160,10 +176,13 @@ sed s/MODSTART/${dateforecaststarts}/ tmp2.txt >tmp3.txt
 sed s/MODPLUS/${dateforecastplus}/ tmp3.txt >tmp4.txt
 sed s/MODEND/${dateforecastends}/ tmp4.txt >Fiji_${filedate}_${Tcycle}.swn
 
+# Store time info of teh forecast in a separate file for plotting
 echo "${dateforecaststarts}/${dateforecastends}" >Lastcycle.txt
 echo "${filedate} ${Tcycle}z" >>Lastcycle.txt
 echo "${FJTdateforecastst}/${FJTdateforecastends}" >>Lastcycle.txt
 
+
+#Run SWAN
 swanrun.bat Fiji_${filedate}_${Tcycle}
 
 

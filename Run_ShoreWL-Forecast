@@ -2,7 +2,7 @@
 
 
 #first get the daily msla
-#WARNING !! This requires herve's login. And downloads teh whole of the Globe. Yet it is still the best SLA product I could find
+#WARNING !! This requires herve's login. And downloads the whole of the Globe. Yet it is still the best SLA product I could find
 lftp -e 'get -e nrt_global_allsat_msla_h_latest.nc.gz; bye' -u hdamlamian,HerveCMEMS2017 ftp.sltac.cls.fr/Core/SEALEVEL_GLO_SLA_MAP_L4_NRT_OBSERVATIONS_008_026/dataset-duacs-nrt-global-merged-allsat-msla-l4/
 
 gzip -f -d nrt_global_allsat_msla_h_latest.nc.gz
@@ -12,12 +12,12 @@ echo -e "177.30\t-18.30\n177.30\t-18.30" | grdtrack -Gnrt_global_allsat_msla_h_l
 
 SLA=`awk '{if(NR==1){print($3)}}' sla.txt`
 
-# Prepare sunset and sunrise file
+# Prepare sunset and sunrise file for plotting the shaded area during night
 ddd=`awk '{if(NR==1){split($1,time,"/");split(time[1],Dstart,".");split(time[2],Dend,"."); printf("%s-%s-%sT%s:%s:%s/%s-%s-%sT%s:%s:%s",substr(Dstart[1],1,4),substr(Dstart[1],5,2),substr(Dstart[1],7,2),substr(Dstart[2],1,2),substr(Dstart[2],3,2),substr(Dstart[2],5,2),substr(Dend[1],1,4),substr(Dend[1],5,2),substr(Dend[1],7,2),substr(Dend[2],1,2),substr(Dend[2],3,2),"01")}}' Lastcycle.txt`
 
 FJd=`awk '{if(NR==3){split($1,time,"/");split(time[1],Dstart,".");split(time[2],Dend,"."); printf("%s-%s-%sT%s:%s:%s/%s-%s-%sT%s:%s:%s",substr(Dstart[1],1,4),substr(Dstart[1],5,2),substr(Dstart[1],7,2),substr(Dstart[2],1,2),substr(Dstart[2],3,2),substr(Dstart[2],5,2),substr(Dend[1],1,4),substr(Dend[1],5,2),substr(Dend[1],7,2),substr(Dend[2],1,2),substr(Dend[2],3,2),"01")}}' Lastcycle.txt`
 
-# Find the starting date at midnioght
+# Find the starting date at midnight
 dddst=`awk '{if(NR==1){split($1,time,"/");split(time[1],Dstart,".");split(time[2],Dend,"."); printf("%s-%s-%sT00:00:00",substr(Dstart[1],1,4),substr(Dstart[1],5,2),substr(Dstart[1],7,2))}}' Lastcycle.txt`
 dddnd=`awk '{if(NR==3){split($1,time,"/");split(time[1],Dstart,".");split(time[2],Dend,"."); printf("%s-%s-%sT00:00:00",substr(Dstart[1],1,4),substr(Dstart[1],5,2),substr(Dstart[1],7,2))}}' Lastcycle.txt`
 
@@ -53,7 +53,7 @@ echo -e ${dstrformatednd} "\t0" >> daysnights.txt
 
 
 
-
+#For each locations
 
 for Loc in Maui_Bay
 do
@@ -83,7 +83,7 @@ awk '{if(NR>7){split($1,time,"."); printf("%f\t%f\t%f\n",$3,$5,$7)}}' $filein >W
 paste Waveparam.txt Tidethisweek.txt > Forecast-Centers_MB_Shore.txt
 
 
-#First forecast Max expected water level
+#First forecast Max expected water level using the Radial Basis Function
 
 #prepare input file for RBFmat.exe
 echo "#Header" > RBF_param.txt
